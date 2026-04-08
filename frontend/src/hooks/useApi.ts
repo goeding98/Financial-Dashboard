@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _env = (import.meta as any).env as Record<string, string> | undefined;
+const BASE_URL = _env?.VITE_API_URL ? `${_env.VITE_API_URL}/api` : '/api';
 export const api = axios.create({ baseURL: BASE_URL });
 
 // Global refresh bus — any component can subscribe to forced refreshes
