@@ -8,7 +8,8 @@ import RevenueAreaChart from '../components/charts/RevenueAreaChart';
 import RevenueByTypePanel from '../components/charts/RevenueByTypePanel';
 import RatiosPanel from '../components/charts/RatiosPanel';
 import MarginBar from '../components/charts/MarginBar';
-import { formatCOP, formatPct } from '../utils/format';
+import ServicePieChart from '../components/charts/ServicePieChart';
+import { formatPct } from '../utils/format';
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse bg-gs-divider rounded ${className}`} />;
@@ -61,7 +62,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Márgenes + Estructura */}
+        {/* Márgenes + Pie Chart */}
         {kpis && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="gs-card p-5">
@@ -70,38 +71,8 @@ export default function Dashboard() {
               <MarginBar label="Margen EBITDA"  value={kpis.ebitdaMargin}  color="#1B7F4A" />
               <MarginBar label="Margen Neto"    value={kpis.netMargin}     color="#003B6F" />
             </div>
-
-            <div className="gs-card p-5">
-              <p className="section-title mb-4">Indicadores Clave</p>
-              <div className="space-y-0">
-                {[
-                  { label: 'Ingresos',       value: formatCOP(kpis.revenue) },
-                  { label: 'Ut. Bruta',      value: formatCOP(kpis.grossProfit) + '  (' + formatPct(kpis.grossMargin) + ')' },
-                  { label: 'EBITDA',         value: formatCOP(kpis.ebitda) + '  (' + formatPct(kpis.ebitdaMargin) + ')' },
-                  { label: 'EBIT',           value: formatCOP(kpis.ebit) },
-                  { label: 'Utilidad Neta',  value: formatCOP(kpis.netIncome) + '  (' + formatPct(kpis.netMargin) + ')' },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between items-center py-2 border-b border-gs-divider last:border-0">
-                    <span className="text-xs text-gs-muted">{label}</span>
-                    <span className="text-xs font-semibold font-mono text-gs-text">{value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="gs-card p-5">
-              <p className="section-title mb-4">Estructura de Costos</p>
-              {kpis.revenue > 0 && (
-                <div className="space-y-2">
-                  {[
-                    { label: 'Costo Ventas / Ingreso', pct: ((kpis.revenue - kpis.grossProfit) / kpis.revenue) * 100, color: '#B91C1C' },
-                    { label: 'OPEX / Ingreso',          pct: ((kpis.grossProfit - kpis.ebitda) / kpis.revenue) * 100,  color: '#DC7A1A' },
-                    { label: 'EBITDA / Ingreso',        pct: kpis.ebitdaMargin,                                        color: '#1B7F4A' },
-                  ].map(({ label, pct, color }) => (
-                    <MarginBar key={label} label={label} value={pct} color={color} />
-                  ))}
-                </div>
-              )}
+            <div className="lg:col-span-2">
+              <ServicePieChart year={year} month={month} sede={sede} />
             </div>
           </div>
         )}
