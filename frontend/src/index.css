@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #F4F5F7;
+    color: #1C2B3A;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .gs-card {
+    @apply bg-gs-card rounded border border-gs-border shadow-card;
+  }
+  .gs-card-hover {
+    @apply gs-card transition-shadow duration-150 hover:shadow-card-hover;
+  }
+  .kpi-value {
+    @apply text-2xl font-semibold text-gs-text tracking-tight;
+  }
+  .kpi-label {
+    @apply text-xs font-medium uppercase tracking-wider text-gs-muted;
+  }
+  .section-title {
+    @apply text-sm font-semibold text-gs-navy uppercase tracking-wider;
+  }
+  .tab-active {
+    @apply border-b-2 border-gs-blue text-gs-blue font-medium;
+  }
+  .tab-inactive {
+    @apply border-b-2 border-transparent text-gs-muted hover:text-gs-text hover:border-gs-border;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #F4F5F7; }
+::-webkit-scrollbar-thumb { background: #C5CBD4; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA5B1; }
+
+/* Recharts overrides */
+.recharts-cartesian-axis-tick-value { font-size: 11px; fill: #6B7A8D; }
+.recharts-legend-item-text { font-size: 12px !important; }
