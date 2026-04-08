@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
-export const api = axios.create({ baseURL: '/api' });
+const BASE_URL = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
+export const api = axios.create({ baseURL: BASE_URL });
 
 // Global refresh bus — any component can subscribe to forced refreshes
 type RefreshListener = () => void;
