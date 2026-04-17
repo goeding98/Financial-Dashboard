@@ -29,7 +29,7 @@ export default function Dashboard() {
 
   const dayParam = toDay ? { toDay } : {};
   const params = { year, month, ...(sede ? { sede } : {}), ...dayParam };
-  const trendParams = { months: trendMonths, ...(sede ? { sede } : {}) };
+  const trendParams = { months: trendMonths, ...(sede ? { sede } : {}), ...dayParam };
 
   const { data: kpis, loading: kLoad }  = useApi<KPISummary>('/kpis', params);
   const { data: trend, loading: tLoad } = useApi<RevenueTrend[]>('/trend', trendParams);
@@ -120,8 +120,8 @@ export default function Dashboard() {
 
         {/* Revenue by Type + Ratios */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RevenueByTypePanel year={year} month={month} sede={sede} />
-          <RatiosPanel year={year} month={month} sede={sede} />
+          <RevenueByTypePanel year={year} month={month} sede={sede} toDay={toDay} />
+          <RatiosPanel year={year} month={month} sede={sede} toDay={toDay} />
         </div>
 
       </div>

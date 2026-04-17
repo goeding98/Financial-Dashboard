@@ -218,7 +218,7 @@ export class SiigoService {
     return result;
   }
 
-  async getRevenueTrend(months = 6, sede?: string): Promise<{ period: string; revenue: number; year: number; month: number }[]> {
+  async getRevenueTrend(months = 6, sede?: string, toDay?: number): Promise<{ period: string; revenue: number; year: number; month: number }[]> {
     const results = [];
     const now = new Date();
 
@@ -234,7 +234,7 @@ export class SiigoService {
       }
 
       try {
-        const revenue = await this.getRevenueByMonth(year, month, sede);
+        const revenue = await this.getRevenueByMonth(year, month, sede, toDay);
         results.push({ period: label, revenue, year, month });
       } catch {
         results.push({ period: label, revenue: 0, year, month });

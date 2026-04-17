@@ -65,9 +65,9 @@ const CustomTooltip = ({ active, payload, label, metric }: any) => {
   );
 };
 
-interface Props { year: number; month: number; sede: string; }
+interface Props { year: number; month: number; sede: string; toDay?: number; }
 
-export default function RevenueByTypePanel({ year, month, sede }: Props) {
+export default function RevenueByTypePanel({ year, month, sede, toDay }: Props) {
   const [metric, setMetric]           = useState<'revenue' | 'count'>('revenue');
   const [viewMode, setViewMode]       = useState<'group' | 'type'>('group');
   const [trendMonths, setTrendMonths] = useState(3);
@@ -88,7 +88,8 @@ export default function RevenueByTypePanel({ year, month, sede }: Props) {
         if (!periods.length) { setLoading(false); return; }
 
         const params: Record<string, string> = { months: periods.join(',') };
-        if (sede) params.sede = sede;
+        if (sede)  params.sede  = sede;
+        if (toDay) params.toDay = String(toDay);
 
         const res = await api.get<PeriodData[]>('/revenue-by-type/trend', { params });
         setData(res.data);
@@ -116,7 +117,7 @@ export default function RevenueByTypePanel({ year, month, sede }: Props) {
     };
     fetch();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month, sede, trendMonths]);
+  }, [year, month, sede, trendMonths, toDay]);
 
   // ── Chart data por tipo ───────────────────────────────────────────────────
   const typeChartData = data.map(p => {

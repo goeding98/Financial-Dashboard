@@ -228,7 +228,8 @@ router.get('/trend', async (req: Request, res: Response) => {
   try {
     const months = parseInt(req.query.months as string) || 3;
     const sede   = req.query.sede as string | undefined;
-    const trend  = await siigoService.getRevenueTrend(months, sede);
+    const toDay  = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
+    const trend  = await siigoService.getRevenueTrend(months, sede, toDay);
 
     const enriched: RevenueTrend[] = await Promise.all(
       trend.map(async (t) => {
@@ -275,12 +276,9 @@ router.get('/revenue-by-type/trend', async (req: Request, res: Response) => {
       }
     }
 
-    // toDay only applies to the last (most recent) period
-    const lastPeriod = periods[periods.length - 1];
     const results = await Promise.all(
       periods.map(async ({ year, month }) => {
-        const isLast = year === lastPeriod?.year && month === lastPeriod?.month;
-        const types = await siigoService.getRevenueByType(year, month, sede, isLast ? toDay : undefined).catch(() => []);
+        const types = await siigoService.getRevenueByType(year, month, sede, toDay).catch(() => []);
         return { period: `${MONTHS_ES[month - 1]} ${String(year).slice(2)}`, year, month, types };
       })
     );
