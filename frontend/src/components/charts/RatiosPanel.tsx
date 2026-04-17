@@ -1,35 +1,12 @@
-import { useState, useEffect } from 'react';
-import { api } from '../../hooks/useApi';
+import { useState } from 'react';
 import { formatCOP } from '../../utils/format';
 
-interface TypeData   { type: string; revenue: number; count: number; }
-interface PeriodData { period: string; year: number; month: number; types: TypeData[]; }
+interface TypeData { type: string; revenue: number; count: number; }
 
-interface Props { year: number; month: number; sede: string; toDay?: number; }
+interface Props { types: TypeData[]; loading: boolean; }
 
-export default function RatiosPanel({ year, month, sede, toDay }: Props) {
+export default function RatiosPanel({ types, loading }: Props) {
   const [metric, setMetric] = useState<'revenue' | 'count'>('revenue');
-  const [types, setTypes]   = useState<TypeData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const params: Record<string, string> = { months: `${year}-${month}` };
-        if (sede)  params.sede  = sede;
-        if (toDay) params.toDay = String(toDay);
-        const res = await api.get<PeriodData[]>('/revenue-by-type/trend', { params });
-        setTypes(res.data[0]?.types ?? []);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month, sede, toDay]);
 
   const sorted = [...types].sort((a, b) =>
     metric === 'revenue' ? b.revenue - a.revenue : b.count - a.count

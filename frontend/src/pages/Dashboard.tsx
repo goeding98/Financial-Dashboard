@@ -121,7 +121,7 @@ export default function Dashboard() {
         {/* Revenue by Type + Ratios */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <RevenueByTypePanel year={year} month={month} sede={sede} toDay={toDay} />
-          <RatiosPanel year={year} month={month} sede={sede} toDay={toDay} />
+          <RatiosPanel types={currentTypes} loading={typesLoad} />
         </div>
 
       </div>
