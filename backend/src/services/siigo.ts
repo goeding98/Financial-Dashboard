@@ -290,7 +290,8 @@ function normalizeServiceType(desc: string): string {
   if (desc.includes('VACUN')) return 'Vacunación';
   if (desc.includes('LABORATOR') || desc.includes('EXAMEN')) return 'Laboratorio';
   if (desc.includes('URGENCIA') || desc.includes('EMERGENCIA')) return 'Urgencias';
-  if (desc.includes('IMAGEN') || desc.includes('ECOGRAF') || desc.includes('RADIO')) return 'Imágenes Diagnósticas';
+  if (desc.includes('ECOGRAF')) return 'Ecografía';
+  if (desc.includes('RADIOGRAF')) return 'Radiografía';
   if (desc.includes('GROOMING') || desc.includes('BAÑO') || desc.includes('ESTETICA')) return 'Estética / Grooming';
   if (desc.includes('MEDICAMENTO') || desc.includes('FARMACIA') || desc.includes('PETSHOP')) return 'Farmacia / Petshop';
   if (desc.includes('INTERNACION')) return 'Internación';
