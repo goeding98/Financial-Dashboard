@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useApi } from '../hooks/useApi';
 import { KPISummary, RevenueTrend } from '../types/financial';
+
+interface TypeData   { type: string; revenue: number; count: number; }
+interface PeriodData { period: string; year: number; month: number; types: TypeData[]; }
 import TopBar from '../components/layout/TopBar';
 import SedeFilter from '../components/layout/SedeFilter';
 import KPICard from '../components/kpis/KPICard';
@@ -9,7 +12,6 @@ import RevenueByTypePanel from '../components/charts/RevenueByTypePanel';
 import RatiosPanel from '../components/charts/RatiosPanel';
 import MarginBar from '../components/charts/MarginBar';
 import ServicePieChart from '../components/charts/ServicePieChart';
-import { formatPct } from '../utils/format';
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse bg-gs-divider rounded ${className}`} />;
@@ -29,6 +31,11 @@ export default function Dashboard() {
 
   const { data: kpis, loading: kLoad }  = useApi<KPISummary>('/kpis', params);
   const { data: trend, loading: tLoad } = useApi<RevenueTrend[]>('/trend', trendParams);
+  const { data: typesTrend, loading: typesLoad } = useApi<PeriodData[]>(
+    '/revenue-by-type/trend',
+    { months: `${year}-${month}`, ...(sede ? { sede } : {}) }
+  );
+  const currentTypes = typesTrend?.[0]?.types ?? [];
 
   return (
     <div className="min-h-screen bg-gs-bg">
@@ -63,19 +70,21 @@ export default function Dashboard() {
         </div>
 
         {/* Márgenes + Pie Chart */}
-        {kpis && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="gs-card p-5">
-              <p className="section-title mb-4">Márgenes del Periodo</p>
-              <MarginBar label="Margen Bruto"   value={kpis.grossMargin}   color="#1666B0" />
-              <MarginBar label="Margen EBITDA"  value={kpis.ebitdaMargin}  color="#1B7F4A" />
-              <MarginBar label="Margen Neto"    value={kpis.netMargin}     color="#003B6F" />
-            </div>
-            <div className="lg:col-span-2">
-              <ServicePieChart year={year} month={month} sede={sede} />
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="gs-card p-5">
+            <p className="section-title mb-4">Márgenes del Periodo</p>
+            {kpis ? (
+              <>
+                <MarginBar label="Margen Bruto"   value={kpis.grossMargin}   color="#1666B0" />
+                <MarginBar label="Margen EBITDA"  value={kpis.ebitdaMargin}  color="#1B7F4A" />
+                <MarginBar label="Margen Neto"    value={kpis.netMargin}     color="#003B6F" />
+              </>
+            ) : <div className="h-24 animate-pulse bg-gs-divider rounded" />}
           </div>
-        )}
+          <div className="lg:col-span-2">
+            <ServicePieChart types={currentTypes} loading={typesLoad} />
+          </div>
+        </div>
 
         {/* Revenue Trend */}
         <div className="gs-card p-5">

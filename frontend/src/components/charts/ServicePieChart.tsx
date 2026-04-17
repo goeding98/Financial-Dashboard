@@ -1,17 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { api } from '../../hooks/useApi';
 import { formatCOP } from '../../utils/format';
 
-interface TypeData   { type: string; revenue: number; count: number; }
-interface PeriodData { period: string; year: number; month: number; types: TypeData[]; }
+interface TypeData { type: string; revenue: number; count: number; }
 
 const COLORS = ['#1666B0','#1B7F4A','#B09756','#B91C1C','#DC7A1A','#2A7DE1','#6B7A8D'];
 const TOP_N = 5;
 
-interface Props { year: number; month: number; sede: string; }
-
 interface Slice { name: string; value: number; pct: number; }
+
+interface Props { types: TypeData[]; loading: boolean; }
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -39,43 +37,24 @@ const renderLegend = (props: any) => {
   );
 };
 
-export default function ServicePieChart({ year, month, sede }: Props) {
-  const [slices, setSlices] = useState<Slice[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ServicePieChart({ types, loading }: Props) {
+  const slices = useMemo(() => {
+    const sorted = [...types].sort((a, b) => b.revenue - a.revenue);
+    const total  = sorted.reduce((s, t) => s + t.revenue, 0);
+    if (total === 0) return [];
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const params: Record<string, string> = { months: `${year}-${month}` };
-        if (sede) params.sede = sede;
-        const res = await api.get<PeriodData[]>('/revenue-by-type/trend', { params });
-        const types = res.data[0]?.types ?? [];
-        const sorted = [...types].sort((a, b) => b.revenue - a.revenue);
-        const total  = sorted.reduce((s, t) => s + t.revenue, 0);
+    const top      = sorted.slice(0, TOP_N);
+    const rest     = sorted.slice(TOP_N);
+    const otherRev = rest.reduce((s, t) => s + t.revenue, 0);
 
-        const top    = sorted.slice(0, TOP_N);
-        const rest   = sorted.slice(TOP_N);
-        const otherRev = rest.reduce((s, t) => s + t.revenue, 0);
-
-        const result: Slice[] = top.map(t => ({
-          name:  t.type,
-          value: t.revenue,
-          pct:   total > 0 ? (t.revenue / total) * 100 : 0,
-        }));
-        if (otherRev > 0) {
-          result.push({ name: 'Otros', value: otherRev, pct: total > 0 ? (otherRev / total) * 100 : 0 });
-        }
-        setSlices(result);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month, sede]);
+    const result: Slice[] = top.map(t => ({
+      name:  t.type,
+      value: t.revenue,
+      pct:   (t.revenue / total) * 100,
+    }));
+    if (otherRev > 0) result.push({ name: 'Otros', value: otherRev, pct: (otherRev / total) * 100 });
+    return result;
+  }, [types]);
 
   return (
     <div className="gs-card p-5 h-full">
@@ -87,27 +66,12 @@ export default function ServicePieChart({ year, month, sede }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
-            <Pie
-              data={slices}
-              dataKey="value"
-              nameKey="name"
-              cx="40%"
-              cy="50%"
-              outerRadius={90}
-              innerRadius={52}
-              paddingAngle={2}
-            >
-              {slices.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
+            <Pie data={slices} dataKey="value" nameKey="name" cx="40%" cy="50%"
+              outerRadius={90} innerRadius={52} paddingAngle={2}>
+              {slices.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              layout="vertical"
-              align="right"
-              verticalAlign="middle"
-              content={renderLegend}
-            />
+            <Legend layout="vertical" align="right" verticalAlign="middle" content={renderLegend} />
           </PieChart>
         </ResponsiveContainer>
       )}

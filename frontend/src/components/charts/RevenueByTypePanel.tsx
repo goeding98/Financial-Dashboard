@@ -36,6 +36,9 @@ const GROUP_COLORS: Record<Group, string> = {
   'Grooming':           '#B91C1C',
 };
 
+// Recharts doesn't handle spaces/slashes in dataKey — sanitize to alphanumeric+underscore
+const gk = (group: string) => group.replace(/[^a-zA-Z0-9]/g, '_');
+
 function typeToGroup(type: string): Group {
   for (const g of GROUPS) {
     if (g === 'Clínica') continue;
@@ -137,8 +140,8 @@ export default function RevenueByTypePanel({ year, month, sede }: Props) {
       totals[g].cnt += t.count;
     });
     GROUPS.forEach(g => {
-      obj[`${g}__rev`] = totals[g].rev;
-      obj[`${g}__cnt`] = totals[g].cnt;
+      obj[`${gk(g)}__rev`] = totals[g].rev;
+      obj[`${gk(g)}__cnt`] = totals[g].cnt;
     });
     return obj;
   });
@@ -225,13 +228,13 @@ export default function RevenueByTypePanel({ year, month, sede }: Props) {
             <Tooltip content={<CustomTooltip metric={metric} />} cursor={{ fill: '#F5F7FA' }} />
             {GROUPS.map(group => (
               <Bar key={group}
-                dataKey={`${group}__${metric === 'revenue' ? 'rev' : 'cnt'}`}
+                dataKey={`${gk(group)}__${metric === 'revenue' ? 'rev' : 'cnt'}`}
                 name={group} fill={GROUP_COLORS[group]}
                 radius={[3, 3, 0, 0]}
               >
                 {metric === 'count' && (
                   <LabelList
-                    dataKey={`${group}__cnt`}
+                    dataKey={`${gk(group)}__cnt`}
                     position="top"
                     style={{ fontSize: 10, fill: '#6B7A8D', fontWeight: 600 }}
                     formatter={(v: number) => v > 0 ? v : ''}
