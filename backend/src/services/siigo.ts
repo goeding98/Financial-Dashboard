@@ -274,13 +274,19 @@ export class SiigoService {
 // Solo unifica plurales/variaciones exactas del mismo concepto; todo lo demás pasa tal cual.
 function normalizeReference(ref: string): string {
   const r = ref.toLowerCase().trim();
-  if (r === 'consulta' || r === 'consultas') return 'Consultas';
-  if (r === 'urgencia'  || r === 'urgencias') return 'Urgencias';
-  if (r === 'cirugia'   || r === 'cirugía'   || r === 'cirugias' || r === 'cirugías') return 'Cirugías';
-  if (r === 'vacuna'    || r === 'vacunas'   || r === 'vacunacion' || r === 'vacunación') return 'Vacunación';
-  if (r === 'laboratorio' || r === 'laboratorios') return 'Laboratorio';
-  // Usar el valor real de la referencia, solo con la primera letra en mayúscula
-  return ref.charAt(0).toUpperCase() + ref.slice(1);
+  if (r === 'consulta'    || r === 'consultas')                        return 'Consultas';
+  if (r === 'urgencia'    || r === 'urgencias')                        return 'Urgencias';
+  if (r.includes('cirug'))                                             return 'Cirugías';
+  if (r.includes('vacun'))                                             return 'Vacunación';
+  if (r === 'laboratorio' || r === 'laboratorios')                     return 'Laboratorio';
+  if (r.includes('ecograf'))                                           return 'Ecografía';
+  if (r.includes('radiograf'))                                         return 'Radiografía';
+  if (r.includes('hospit') || r.includes('internac'))                  return 'Hospitalización';
+  if (r.includes('grooming') || r.includes('estétic') || r.includes('estetica') || r.includes('baño')) return 'Estética / Grooming';
+  if (r.includes('petshop') || r.includes('farmacia') || r.includes('medicament')) return 'Farmacia / Petshop';
+  if (r.includes('control'))                                           return 'Controles';
+  // Valor real de la referencia — convertir a Title Case
+  return ref.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function normalizeServiceType(desc: string): string {
