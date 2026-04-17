@@ -110,14 +110,14 @@ export class SiigoService {
     return allInvoices;
   }
 
-  async getRevenueByMonth(year: number, month: number, sede?: string): Promise<number> {
-    const cacheKey = `revenue_${year}_${month}_${sede || 'all'}`;
+  async getRevenueByMonth(year: number, month: number, sede?: string, toDay?: number): Promise<number> {
+    const cacheKey = `revenue_${year}_${month}_${sede || 'all'}_${toDay || 'full'}`;
     const cached = cache.get<number>(cacheKey);
     if (cached !== undefined) return cached;
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+    const endDay    = toDay || new Date(year, month, 0).getDate();
+    const endDate   = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
     // Traer todas las facturas sin filtro de seller (necesitamos las del seller 437 para prorratear)
     const allInvoices = await this.getInvoices(startDate, endDate);
@@ -170,14 +170,14 @@ export class SiigoService {
     return map;
   }
 
-  async getRevenueByType(year: number, month: number, sede?: string): Promise<{ type: string; revenue: number; count: number }[]> {
-    const cacheKey = `rev_type_${year}_${month}_${sede || 'all'}`;
+  async getRevenueByType(year: number, month: number, sede?: string, toDay?: number): Promise<{ type: string; revenue: number; count: number }[]> {
+    const cacheKey = `rev_type_${year}_${month}_${sede || 'all'}_${toDay || 'full'}`;
     const cached = cache.get<any[]>(cacheKey);
     if (cached) return cached;
 
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+    const endDay    = toDay || new Date(year, month, 0).getDate();
+    const endDate   = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
     const [invoices, refMap] = await Promise.all([
       this.getInvoices(startDate, endDate),

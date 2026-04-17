@@ -25,15 +25,17 @@ export default function Dashboard() {
   const [trendMonths, setTrend] = useState(3);
   const [showGP, setShowGP]   = useState(true);
   const [showEBITDA, setEBITDA] = useState(true);
+  const [toDay, setToDay]     = useState<number | undefined>(undefined);
 
-  const params = { year, month, ...(sede ? { sede } : {}) };
+  const dayParam = toDay ? { toDay } : {};
+  const params = { year, month, ...(sede ? { sede } : {}), ...dayParam };
   const trendParams = { months: trendMonths, ...(sede ? { sede } : {}) };
 
   const { data: kpis, loading: kLoad }  = useApi<KPISummary>('/kpis', params);
   const { data: trend, loading: tLoad } = useApi<RevenueTrend[]>('/trend', trendParams);
   const { data: typesTrend, loading: typesLoad } = useApi<PeriodData[]>(
     '/revenue-by-type/trend',
-    { months: `${year}-${month}`, ...(sede ? { sede } : {}) }
+    { months: `${year}-${month}`, ...(sede ? { sede } : {}), ...dayParam }
   );
   const currentTypes = typesTrend?.[0]?.types ?? [];
 
@@ -44,7 +46,9 @@ export default function Dashboard() {
         subtitle={kpis ? `Periodo: ${kpis.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year}
         month={month}
-        onPeriodChange={(y, m) => { setYear(y); setMonth(m); }}
+        toDay={toDay}
+        onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); }}
+        onToDayChange={setToDay}
         trailing={<SedeFilter value={sede} onChange={setSede} />}
       />
 

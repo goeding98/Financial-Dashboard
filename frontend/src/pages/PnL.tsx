@@ -238,13 +238,15 @@ export default function PnL() {
   const [sede, setSede]   = useState('');
   const [view, setView]   = useState<'chart' | 'table'>('chart');
 
+  const [toDay, setToDay]                 = useState<number | undefined>(undefined);
   const [comparePnls, setComparePnls]     = useState<PnLType[]>([]);
   const [addingCompare, setAddingCompare] = useState(false);
   const [cmpYear, setCmpYear]             = useState(now.getFullYear());
   const [cmpMonth, setCmpMonth]           = useState(now.getMonth() === 0 ? 12 : now.getMonth());
 
   const sedeParam = sede ? { sede } : {};
-  const { data: pnl, loading } = useApi<PnLType>('/pnl', { year, month, ...sedeParam });
+  const dayParam  = toDay ? { toDay } : {};
+  const { data: pnl, loading } = useApi<PnLType>('/pnl', { year, month, ...sedeParam, ...dayParam });
 
   const addCompareMonth = async () => {
     if (comparePnls.length >= 3) return;
@@ -275,7 +277,9 @@ export default function PnL() {
         title="Estado de Resultados (P&G)"
         subtitle={pnl ? `${pnl.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year} month={month}
-        onPeriodChange={(y, m) => { setYear(y); setMonth(m); setComparePnls([]); }}
+        toDay={toDay}
+        onToDayChange={setToDay}
+        onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); setComparePnls([]); }}
         trailing={
           <div className="flex items-center gap-2">
             <SedeFilter value={sede} onChange={v => { setSede(v); setComparePnls([]); }} />

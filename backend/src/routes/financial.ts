@@ -109,15 +109,16 @@ router.get('/sellers', async (_req, res: Response) => {
 // ── KPIs ─────────────────────────────────────────────────────────────────────
 router.get('/kpis', async (req: Request, res: Response) => {
   try {
-    const year  = parseInt(req.query.year  as string) || new Date().getFullYear();
-    const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
-    const sede  = req.query.sede as string | undefined;
+    const year   = parseInt(req.query.year  as string) || new Date().getFullYear();
+    const month  = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+    const sede   = req.query.sede as string | undefined;
+    const toDay  = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
 
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear  = month === 1 ? year - 1 : year;
 
     const [revenue, revenuePrev, expenses, expensesPrev] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede).catch(() => getMockRevenue(year, month)),
+      siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
       siigoService.getRevenueByMonth(prevYear, prevMonth, sede).catch(() => getMockRevenue(prevYear, prevMonth)),
       sheetsService.getExpenses(year, month, sede),
       sheetsService.getExpenses(prevYear, prevMonth, sede),
@@ -148,9 +149,10 @@ router.get('/pnl', async (req: Request, res: Response) => {
     const year  = parseInt(req.query.year  as string) || new Date().getFullYear();
     const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
     const sede  = req.query.sede as string | undefined;
+    const toDay = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
 
     const [revenue, expenses] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede).catch(() => getMockRevenue(year, month)),
+      siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
       sheetsService.getExpenses(year, month, sede),
     ]);
 
@@ -245,16 +247,18 @@ router.get('/revenue-by-type', async (req: Request, res: Response) => {
     const year  = parseInt(req.query.year  as string) || new Date().getFullYear();
     const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
     const sede  = req.query.sede as string | undefined;
-    const data  = await siigoService.getRevenueByType(year, month, sede);
+    const toDay = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
+    const data  = await siigoService.getRevenueByType(year, month, sede, toDay);
     res.json(data);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/revenue-by-type/trend?months=2026-2,2026-3&sede=Colseguros
+// GET /api/revenue-by-type/trend?months=2026-2,2026-3&sede=Colseguros&toDay=15
 router.get('/revenue-by-type/trend', async (req: Request, res: Response) => {
   try {
     const monthsParam = req.query.months as string | undefined;
-    const sede = req.query.sede as string | undefined;
+    const sede  = req.query.sede as string | undefined;
+    const toDay = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
 
     let periods: { year: number; month: number }[];
 
@@ -271,9 +275,12 @@ router.get('/revenue-by-type/trend', async (req: Request, res: Response) => {
       }
     }
 
+    // toDay only applies to the last (most recent) period
+    const lastPeriod = periods[periods.length - 1];
     const results = await Promise.all(
       periods.map(async ({ year, month }) => {
-        const types = await siigoService.getRevenueByType(year, month, sede).catch(() => []);
+        const isLast = year === lastPeriod?.year && month === lastPeriod?.month;
+        const types = await siigoService.getRevenueByType(year, month, sede, isLast ? toDay : undefined).catch(() => []);
         return { period: `${MONTHS_ES[month - 1]} ${String(year).slice(2)}`, year, month, types };
       })
     );
