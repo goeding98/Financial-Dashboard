@@ -19,23 +19,39 @@ function Skeleton({ className = '' }: { className?: string }) {
 
 export default function Dashboard() {
   const now = new Date();
-  const [year, setYear]       = useState(now.getFullYear());
-  const [month, setMonth]     = useState(now.getMonth() + 1);
-  const [sede, setSede]       = useState('');
-  const [trendMonths, setTrend] = useState(3);
-  const [showGP, setShowGP]   = useState(true);
-  const [showEBITDA, setEBITDA] = useState(true);
-  const [toDay, setToDay]     = useState<number | undefined>(undefined);
 
-  const dayParam = toDay ? { toDay } : {};
-  const params = { year, month, ...(sede ? { sede } : {}), ...dayParam };
-  const trendParams = { months: trendMonths, ...(sede ? { sede } : {}), ...dayParam };
+  // Draft state — what the user sees in the controls
+  const [year, setYear]     = useState(now.getFullYear());
+  const [month, setMonth]   = useState(now.getMonth() + 1);
+  const [sede, setSede]     = useState('');
+  const [toDay, setToDay]   = useState<number | undefined>(undefined);
+  const [trendMonths, setTrend] = useState(3);
+  const [showGP, setShowGP]     = useState(true);
+  const [showEBITDA, setEBITDA] = useState(true);
+
+  // Applied state — only changes on "Aplicar", drives all API calls
+  const [ap, setAp] = useState({
+    year:  now.getFullYear(),
+    month: now.getMonth() + 1,
+    sede:  '',
+    toDay: undefined as number | undefined,
+    trendMonths: 3,
+  });
+
+  const isDirty = year !== ap.year || month !== ap.month || sede !== ap.sede
+               || toDay !== ap.toDay || trendMonths !== ap.trendMonths;
+
+  const apply = () => setAp({ year, month, sede, toDay, trendMonths });
+
+  const dayParam    = ap.toDay ? { toDay: ap.toDay } : {};
+  const params      = { year: ap.year, month: ap.month, ...(ap.sede ? { sede: ap.sede } : {}), ...dayParam };
+  const trendParams = { months: ap.trendMonths, ...(ap.sede ? { sede: ap.sede } : {}), ...dayParam };
 
   const { data: kpis, loading: kLoad }  = useApi<KPISummary>('/kpis', params);
   const { data: trend, loading: tLoad } = useApi<RevenueTrend[]>('/trend', trendParams);
   const { data: typesTrend, loading: typesLoad } = useApi<PeriodData[]>(
     '/revenue-by-type/trend',
-    { months: `${year}-${month}`, ...(sede ? { sede } : {}), ...dayParam }
+    { months: `${ap.year}-${ap.month}`, ...(ap.sede ? { sede: ap.sede } : {}), ...dayParam }
   );
   const currentTypes = typesTrend?.[0]?.types ?? [];
 
@@ -43,12 +59,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gs-bg">
       <TopBar
         title="Dashboard Financiero"
-        subtitle={kpis ? `Periodo: ${kpis.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
+        subtitle={kpis ? `Periodo: ${kpis.period.label}${ap.sede ? ` · ${ap.sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year}
         month={month}
         toDay={toDay}
         onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); }}
         onToDayChange={setToDay}
+        isDirty={isDirty}
+        onApply={apply}
         trailing={<SedeFilter value={sede} onChange={setSede} />}
       />
 
@@ -120,8 +138,8 @@ export default function Dashboard() {
 
         {/* Revenue by Type + Ratios */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <RevenueByTypePanel year={year} month={month} sede={sede} toDay={toDay} />
-          <RatiosPanel year={year} month={month} sede={sede} toDay={toDay} />
+          <RevenueByTypePanel year={ap.year} month={ap.month} sede={ap.sede} toDay={ap.toDay} />
+          <RatiosPanel year={ap.year} month={ap.month} sede={ap.sede} toDay={ap.toDay} />
         </div>
 
       </div>

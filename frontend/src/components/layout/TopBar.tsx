@@ -9,13 +9,15 @@ interface Props {
   onPeriodChange: (year: number, month: number) => void;
   onToDayChange?: (day: number | undefined) => void;
   trailing?: React.ReactNode;
+  isDirty?: boolean;
+  onApply?: () => void;
 }
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const YEARS = [2023, 2024, 2025, 2026];
 
-export default function TopBar({ title, subtitle, year, month, toDay, onPeriodChange, onToDayChange, trailing }: Props) {
+export default function TopBar({ title, subtitle, year, month, toDay, onPeriodChange, onToDayChange, trailing, isDirty, onApply }: Props) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
@@ -67,6 +69,20 @@ export default function TopBar({ title, subtitle, year, month, toDay, onPeriodCh
               ))}
             </select>
           </div>
+        )}
+
+        {/* Apply button */}
+        {onApply && (
+          <button
+            onClick={onApply}
+            className={`text-xs px-3 py-1.5 rounded font-medium transition-colors ${
+              isDirty
+                ? 'bg-gs-blue text-white ring-2 ring-gs-blue/40'
+                : 'bg-gs-bg border border-gs-border text-gs-muted'
+            }`}
+          >
+            Aplicar
+          </button>
         )}
 
         {/* Refresh button with timestamp */}
