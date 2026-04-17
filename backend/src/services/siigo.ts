@@ -3,7 +3,7 @@ import NodeCache from 'node-cache';
 import { SiigoAuthResponse, SiigoInvoice } from '../types/financial';
 import { registerCache } from './cache';
 
-const cache = new NodeCache({ stdTTL: 3600 });
+const cache = new NodeCache({ stdTTL: 28800 }); // 8 horas
 registerCache(cache);
 
 const SIIGO_USERNAME   = process.env.SIIGO_USERNAME   || '';

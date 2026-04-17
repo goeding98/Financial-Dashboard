@@ -238,33 +238,20 @@ export default function PnL() {
   const [sede, setSede]   = useState('');
   const [view, setView]   = useState<'chart' | 'table'>('chart');
 
-  // Draft state — controls UI only
-  const [toDay, setToDay] = useState<number | undefined>(undefined);
-
-  // Applied state — drives API calls, only changes on "Aplicar"
-  const [ap, setAp] = useState({
-    year:  now.getFullYear(),
-    month: now.getMonth() + 1,
-    sede:  '',
-    toDay: undefined as number | undefined,
-  });
-
-  const isDirty = year !== ap.year || month !== ap.month || sede !== ap.sede || toDay !== ap.toDay;
-  const apply = () => { setAp({ year, month, sede, toDay }); setComparePnls([]); };
-
+  const [toDay, setToDay]                 = useState<number | undefined>(undefined);
   const [comparePnls, setComparePnls]     = useState<PnLType[]>([]);
   const [addingCompare, setAddingCompare] = useState(false);
   const [cmpYear, setCmpYear]             = useState(now.getFullYear());
   const [cmpMonth, setCmpMonth]           = useState(now.getMonth() === 0 ? 12 : now.getMonth());
 
-  const apSedeParam = ap.sede ? { sede: ap.sede } : {};
-  const apDayParam  = ap.toDay ? { toDay: ap.toDay } : {};
-  const { data: pnl, loading } = useApi<PnLType>('/pnl', { year: ap.year, month: ap.month, ...apSedeParam, ...apDayParam });
+  const sedeParam = sede ? { sede } : {};
+  const dayParam  = toDay ? { toDay } : {};
+  const { data: pnl, loading } = useApi<PnLType>('/pnl', { year, month, ...sedeParam, ...dayParam });
 
   const addCompareMonth = async () => {
     if (comparePnls.length >= 3) return;
     try {
-      const res = await api.get<PnLType>('/pnl', { params: { year: cmpYear, month: cmpMonth, ...apSedeParam, ...apDayParam } });
+      const res = await api.get<PnLType>('/pnl', { params: { year: cmpYear, month: cmpMonth, ...sedeParam, ...dayParam } });
       setComparePnls(prev => [...prev, res.data]);
       setAddingCompare(false);
     } catch {}
@@ -280,7 +267,7 @@ export default function PnL() {
     : [];
 
   // Index of the "primary" (top selector) period in the sorted array
-  const primaryIdx = allPnls.findIndex(p => p.period.year === ap.year && p.period.month === ap.month);
+  const primaryIdx = allPnls.findIndex(p => p.period.year === year && p.period.month === month);
 
   const waterfallData = pnl ? buildPnLWaterfall(pnl) : [];
 
@@ -288,16 +275,14 @@ export default function PnL() {
     <div className="min-h-screen bg-gs-bg">
       <TopBar
         title="Estado de Resultados (P&G)"
-        subtitle={pnl ? `${pnl.period.label}${ap.sede ? ` · ${ap.sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
+        subtitle={pnl ? `${pnl.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year} month={month}
         toDay={toDay}
-        onToDayChange={setToDay}
-        onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); }}
-        isDirty={isDirty}
-        onApply={apply}
+        onToDayChange={d => { setToDay(d); setComparePnls([]); }}
+        onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); setComparePnls([]); }}
         trailing={
           <div className="flex items-center gap-2">
-            <SedeFilter value={sede} onChange={setSede} />
+            <SedeFilter value={sede} onChange={v => { setSede(v); setComparePnls([]); }} />
             <div className="flex border border-gs-border rounded overflow-hidden text-xs">
               {(['chart','table'] as const).map(v => (
                 <button key={v} onClick={() => setView(v)}
