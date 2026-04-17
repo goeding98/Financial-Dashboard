@@ -128,10 +128,12 @@ export class SiigoService {
       if (!sede) {
         revenue += amount;
       } else if (inv.seller === PRORATE_SELLER_ID) {
-        // Prorrateo 70/30 para facturas de la contadora
+        // Emergencias Veterinaria Dogspital (empresa): prorrateo 70/30
         revenue += amount * (sede === 'Colseguros' ? PRORATE_COLSEGUROS : PRORATE_CIUDAD);
-      } else if (SELLER_SEDE_MAP[inv.seller] === sede) {
-        revenue += amount;
+      } else {
+        // Sellers no mapeados explícitamente → Ciudad Jardin por defecto
+        const sellerSede = SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin';
+        if (sellerSede === sede) revenue += amount;
       }
     }
 
@@ -191,8 +193,9 @@ export class SiigoService {
       if (sede) {
         if (inv.seller === PRORATE_SELLER_ID) {
           factor = sede === 'Colseguros' ? PRORATE_COLSEGUROS : PRORATE_CIUDAD;
-        } else if (SELLER_SEDE_MAP[inv.seller] !== sede) {
-          continue;
+        } else {
+          const sellerSede = SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin';
+          if (sellerSede !== sede) continue;
         }
       }
 
