@@ -83,8 +83,8 @@ async function fetchSheetCSV(): Promise<string[][]> {
 }
 
 export class SheetsService {
-  async getExpenses(year: number, month: number, sede?: string): Promise<PnLItem[]> {
-    const cacheKey = `expenses_${year}_${month}_${sede || 'all'}`;
+  async getExpenses(year: number, month: number, sede?: string, toDay?: number): Promise<PnLItem[]> {
+    const cacheKey = `expenses_${year}_${month}_${sede || 'all'}_${toDay || 'full'}`;
     const cached = cache.get<PnLItem[]>(cacheKey);
     if (cached) return cached;
 
@@ -96,6 +96,7 @@ export class SheetsService {
           if (row.length < 9) return false;
           if (parseInt(row[0]) !== year || parseInt(row[1]) !== month) return false;
           if (sede && row[4]?.toLowerCase().trim() !== sede.toLowerCase().trim()) return false;
+          if (toDay && parseInt(row[2]) > toDay) return false;
           return true;
         })
         .map((row, idx) => {

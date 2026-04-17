@@ -120,7 +120,7 @@ router.get('/kpis', async (req: Request, res: Response) => {
     const [revenue, revenuePrev, expenses, expensesPrev] = await Promise.all([
       siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
       siigoService.getRevenueByMonth(prevYear, prevMonth, sede).catch(() => getMockRevenue(prevYear, prevMonth)),
-      sheetsService.getExpenses(year, month, sede),
+      sheetsService.getExpenses(year, month, sede, toDay),
       sheetsService.getExpenses(prevYear, prevMonth, sede),
     ]);
 
@@ -153,7 +153,7 @@ router.get('/pnl', async (req: Request, res: Response) => {
 
     const [revenue, expenses] = await Promise.all([
       siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
-      sheetsService.getExpenses(year, month, sede),
+      sheetsService.getExpenses(year, month, sede, toDay),
     ]);
 
     res.json(buildPnL(year, month, revenue, expenses));
@@ -233,7 +233,7 @@ router.get('/trend', async (req: Request, res: Response) => {
 
     const enriched: RevenueTrend[] = await Promise.all(
       trend.map(async (t) => {
-        const expenses = await sheetsService.getExpenses(t.year, t.month, sede);
+        const expenses = await sheetsService.getExpenses(t.year, t.month, sede, toDay);
         const pnl = buildPnL(t.year, t.month, t.revenue, expenses);
         return { period: t.period, revenue: t.revenue, grossProfit: pnl.grossProfit, ebitda: pnl.ebitda };
       })
