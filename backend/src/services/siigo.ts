@@ -270,24 +270,16 @@ export class SiigoService {
   }
 }
 
-// Normaliza el valor de "Referencia de Fábrica" de Siigo a nuestras categorías internas
+// Normaliza el valor de "Referencia de Fábrica" de Siigo.
+// Solo unifica plurales/variaciones exactas del mismo concepto; todo lo demás pasa tal cual.
 function normalizeReference(ref: string): string {
   const r = ref.toLowerCase().trim();
-  if (r === 'consulta' || r === 'consultas')                          return 'Consultas';
-  if (r.includes('hospit') || r.includes('internac'))                 return 'Hospitalización';
-  if (r.includes('cirug'))                                            return 'Cirugías';
-  if (r.includes('vacun'))                                            return 'Vacunación';
-  if (r.includes('lab') && r.includes('extern'))                      return 'Laboratorio Externo';
-  if (r.includes('laborator') || r.includes('lab '))                  return 'Laboratorio';
-  if (r === 'laboratorio')                                            return 'Laboratorio';
-  if (r.includes('urgencia') || r.includes('emergencia'))             return 'Urgencias';
-  if (r.includes('imagen') || r.includes('ecograf') || r.includes('radio') || r.includes('diagnóst')) return 'Imágenes Diagnósticas';
-  if (r.includes('grooming') || r.includes('estétic') || r.includes('estetica') || r.includes('baño')) return 'Estética / Grooming';
-  if (r.includes('petshop') || r.includes('farmacia') || r.includes('medicament')) return 'Farmacia / Petshop';
-  if (r === 'petshop')                                                return 'Farmacia / Petshop';
-  if (r.includes('control'))                                          return 'Controles';
-  if (r.includes('procedimiento'))                                    return 'Procedimientos';
-  // Si no coincide con ninguna, usar el valor tal cual (capitalizado)
+  if (r === 'consulta' || r === 'consultas') return 'Consultas';
+  if (r === 'urgencia'  || r === 'urgencias') return 'Urgencias';
+  if (r === 'cirugia'   || r === 'cirugía'   || r === 'cirugias' || r === 'cirugías') return 'Cirugías';
+  if (r === 'vacuna'    || r === 'vacunas'   || r === 'vacunacion' || r === 'vacunación') return 'Vacunación';
+  if (r === 'laboratorio' || r === 'laboratorios') return 'Laboratorio';
+  // Usar el valor real de la referencia, solo con la primera letra en mayúscula
   return ref.charAt(0).toUpperCase() + ref.slice(1);
 }
 
