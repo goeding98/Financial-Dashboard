@@ -251,7 +251,7 @@ export default function PnL() {
   const addCompareMonth = async () => {
     if (comparePnls.length >= 3) return;
     try {
-      const res = await api.get<PnLType>('/pnl', { params: { year: cmpYear, month: cmpMonth, ...sedeParam } });
+      const res = await api.get<PnLType>('/pnl', { params: { year: cmpYear, month: cmpMonth, ...sedeParam, ...dayParam } });
       setComparePnls(prev => [...prev, res.data]);
       setAddingCompare(false);
     } catch {}
@@ -278,7 +278,7 @@ export default function PnL() {
         subtitle={pnl ? `${pnl.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year} month={month}
         toDay={toDay}
-        onToDayChange={setToDay}
+        onToDayChange={d => { setToDay(d); setComparePnls([]); }}
         onPeriodChange={(y, m) => { setYear(y); setMonth(m); setToDay(undefined); setComparePnls([]); }}
         trailing={
           <div className="flex items-center gap-2">
