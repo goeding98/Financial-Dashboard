@@ -115,30 +115,35 @@ export class SiigoService {
     const cached = cache.get<number>(cacheKey);
     if (cached !== undefined) return cached;
 
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDay    = toDay || new Date(year, month, 0).getDate();
-    const endDate   = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
+    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
 
-    // Traer todas las facturas sin filtro de seller (necesitamos las del seller 437 para prorratear)
-    const allInvoices = await this.getInvoices(startDate, endDate);
+    // Siempre traer el mes completo (Siigo no filtra confiablemente por día con created_end)
+    const allInvoices = await this.getInvoices(startDate, fullEndDate);
+
+    // Filtrar por día en memoria usando el campo date de la factura
+    const invoices = toDay
+      ? allInvoices.filter((inv: any) => {
+          const d = inv.date ? new Date(inv.date).getDate() : 1;
+          return d <= toDay;
+        })
+      : allInvoices;
 
     let revenue = 0;
-    for (const inv of allInvoices as any[]) {
+    for (const inv of invoices as any[]) {
       const amount = inv.subtotal ?? inv.total ?? 0;
       if (!sede) {
         revenue += amount;
       } else if (inv.seller === PRORATE_SELLER_ID) {
-        // Emergencias Veterinaria Dogspital (empresa): prorrateo 70/30
         revenue += amount * (sede === 'Colseguros' ? PRORATE_COLSEGUROS : PRORATE_CIUDAD);
       } else {
-        // Sellers no mapeados explícitamente → Ciudad Jardin por defecto
         const sellerSede = SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin';
         if (sellerSede === sede) revenue += amount;
       }
     }
 
     cache.set(cacheKey, revenue);
-    console.log(`[Siigo] Revenue ${month}/${year}${sede ? ' (' + sede + ')' : ''}: $${Math.round(revenue).toLocaleString('es-CO')}`);
+    console.log(`[Siigo] Revenue ${month}/${year}${sede ? ' (' + sede + ')' : ''}${toDay ? ` (hasta día ${toDay})` : ''}: $${Math.round(revenue).toLocaleString('es-CO')}`);
     return revenue;
   }
 
@@ -177,14 +182,21 @@ export class SiigoService {
     const cached = cache.get<any[]>(cacheKey);
     if (cached) return cached;
 
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const endDay    = toDay || new Date(year, month, 0).getDate();
-    const endDate   = `${year}-${String(month).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+    const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
+    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
 
-    const [invoices, refMap] = await Promise.all([
-      this.getInvoices(startDate, endDate),
+    const [allInvoices, refMap] = await Promise.all([
+      this.getInvoices(startDate, fullEndDate),
       this.getProductReferenceMap(),
     ]);
+
+    // Filtrar por día en memoria
+    const invoices = toDay
+      ? allInvoices.filter((inv: any) => {
+          const d = inv.date ? new Date(inv.date).getDate() : 1;
+          return d <= toDay;
+        })
+      : allInvoices;
 
     const byType: Record<string, { revenue: number; count: number }> = {};
 
