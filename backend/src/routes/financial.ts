@@ -95,6 +95,74 @@ router.get('/debug/types', async (req: Request, res: Response) => {
   }
 });
 
+// ── Debug: ver ítems individuales por tipo clasificado ───────────────────────
+// GET /api/debug/items?year=2026&month=4&type=Ecografía
+router.get('/debug/items', async (req: Request, res: Response) => {
+  try {
+    const year   = parseInt(req.query.year  as string) || new Date().getFullYear();
+    const month  = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+    const filter = (req.query.type as string || '').toLowerCase();
+
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const fullEnd   = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+    const invoices: any[] = await (siigoService as any).getInvoices(startDate, fullEnd);
+    const refMap: Record<string, string> = await (siigoService as any).getProductReferenceMap();
+
+    // Import normalize fns via a small inline re-implementation so we see the same result
+    const items: any[] = [];
+    for (const inv of invoices) {
+      for (const item of inv.items || []) {
+        const reference = refMap[String(item.code)] || '';
+        const classified = reference
+          ? `ref:${reference}`
+          : `desc:${item.description}`;
+
+        // Determine the final category (mirrors siigo.ts logic)
+        const r = reference.toLowerCase().trim();
+        let category = '';
+        if (r) {
+          if (r === 'consulta' || r === 'consultas') category = 'Consultas';
+          else if (r === 'urgencia' || r === 'urgencias') category = 'Urgencias';
+          else if (r.includes('cirug')) category = 'Cirugías';
+          else if (r.includes('vacun')) category = 'Vacunación';
+          else if (r === 'laboratorio' || r === 'laboratorios') category = 'Laboratorio';
+          else if (r.includes('ecograf')) category = 'Ecografía';
+          else if (r.includes('radiograf')) category = 'Radiografía';
+          else if (r.includes('hospit') || r.includes('internac')) category = 'Hospitalización';
+          else category = reference.trim().toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
+        } else {
+          const d = (item.description || '').toUpperCase();
+          if (d.includes('CONSULTA')) category = 'Consultas';
+          else if (d.includes('ECOGRAF')) category = 'Ecografía';
+          else if (d.includes('RADIOGRAF')) category = 'Radiografía';
+          else category = d.substring(0, 40);
+        }
+
+        if (!filter || category.toLowerCase().includes(filter)) {
+          items.push({
+            invoiceId:   inv.id,
+            invoiceDate: inv.date,
+            seller:      inv.seller,
+            code:        item.code,
+            description: item.description,
+            reference:   reference || '(sin referencia)',
+            category,
+            quantity:    item.quantity,
+            total:       item.total,
+            source:      reference ? 'referencia' : 'descripcion',
+          });
+        }
+      }
+    }
+
+    items.sort((a, b) => (a.invoiceDate || '').localeCompare(b.invoiceDate || ''));
+    res.json({ period: `${month}/${year}`, filter: filter || 'todos', count: items.length, items });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Sedes y Sellers ──────────────────────────────────────────────────────────
 router.get('/sedes', async (_req, res: Response) => {
   const sedes = await sheetsService.getSedes().catch(() => ['Colseguros', 'Ciudad Jardin']);
