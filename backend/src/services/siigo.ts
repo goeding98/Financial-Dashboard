@@ -15,6 +15,11 @@ const DATA_START       = new Date(2025, 4, 1); // Mayo 2025 — inicio de datos 
 // 437 = empresa (contadora) → se divide 70% Colseguros / 30% Ciudad Jardin al calcular
 export const SELLER_SEDE_MAP: Record<number, string> = {
   948: 'Colseguros',    // Marilu Salazar
+  969: 'Colseguros',    // Edna Labrada
+  949: 'Colseguros',    // Johan Duque (en Siigo: TURNO NOCTURNOFESTIVO)
+  972: 'Colseguros',    // Johan Ospina
+  970: 'Colseguros',    // Fernanda Pabon
+  971: 'Colseguros',    // Edwin Martinez
   956: 'Ciudad Jardin', // Marcela Moreno
 };
 
