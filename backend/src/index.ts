@@ -18,6 +18,13 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.listen(PORT, () => {
   console.log(`\n🚀 Financial Dashboard API corriendo en http://localhost:${PORT}\n`);
 
+  // Verificar variables críticas
+  if (!process.env.SIIGO_USERNAME || !process.env.SIIGO_ACCESS_KEY) {
+    console.error('⚠️  CRÍTICO: SIIGO_USERNAME o SIIGO_ACCESS_KEY no están configuradas. Revisa las variables en Railway!');
+  } else {
+    console.log(`[Config] Siigo: ${process.env.SIIGO_USERNAME} ✓`);
+  }
+
   // Pre-calentar cache: fetching últimos 3 meses en segundo plano al iniciar
   setTimeout(async () => {
     const now = new Date();
