@@ -27,9 +27,16 @@ app.listen(PORT, () => {
       const y = d.getFullYear();
       const m = d.getMonth() + 1;
       try {
+        // 1) Fetch facturas del mes (llama a Siigo, llena invoice cache)
         await siigoService.getRevenueByMonth(y, m);
+        // 2) Calcular sedes usando invoice cache ya lleno — sin llamadas extra a Siigo
+        await siigoService.getRevenueByMonth(y, m, 'Colseguros');
+        await siigoService.getRevenueByMonth(y, m, 'Ciudad Jardin');
+        // 3) Revenue por tipo (también usa invoice cache)
         await siigoService.getRevenueByType(y, m);
-        console.log(`[Prewarm] ${m}/${y} listo`);
+        await siigoService.getRevenueByType(y, m, 'Colseguros');
+        await siigoService.getRevenueByType(y, m, 'Ciudad Jardin');
+        console.log(`[Prewarm] ${m}/${y} listo (all + 2 sedes)`);
       } catch (e: any) {
         console.warn(`[Prewarm] ${m}/${y} error:`, e.message);
       }

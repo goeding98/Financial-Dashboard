@@ -163,6 +163,33 @@ router.get('/debug/items', async (req: Request, res: Response) => {
   }
 });
 
+// ── Debug: ver revenue real por sede (sin mock) ──────────────────────────────
+router.get('/debug/revenue', async (req: Request, res: Response) => {
+  try {
+    const year  = parseInt(req.query.year  as string) || new Date().getFullYear();
+    const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+
+    const [all, colseguros, ciudad] = await Promise.all([
+      siigoService.getRevenueByMonth(year, month, undefined).catch((e: any) => ({ error: e.message })),
+      siigoService.getRevenueByMonth(year, month, 'Colseguros').catch((e: any) => ({ error: e.message })),
+      siigoService.getRevenueByMonth(year, month, 'Ciudad Jardin').catch((e: any) => ({ error: e.message })),
+    ]);
+
+    res.json({
+      period: `${month}/${year}`,
+      all, colseguros, ciudad,
+      mockValue: getMockRevenue(year, month),
+      isMock: {
+        all: all === getMockRevenue(year, month),
+        colseguros: colseguros === getMockRevenue(year, month),
+        ciudad: ciudad === getMockRevenue(year, month),
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Sedes y Sellers ──────────────────────────────────────────────────────────
 router.get('/sedes', async (_req, res: Response) => {
   const sedes = await sheetsService.getSedes().catch(() => ['Colseguros', 'Ciudad Jardin']);
@@ -186,8 +213,14 @@ router.get('/kpis', async (req: Request, res: Response) => {
     const prevYear  = month === 1 ? year - 1 : year;
 
     const [revenue, revenuePrev, expenses, expensesPrev] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
-      siigoService.getRevenueByMonth(prevYear, prevMonth, sede).catch(() => getMockRevenue(prevYear, prevMonth)),
+      siigoService.getRevenueByMonth(year, month, sede, toDay).catch((e: any) => {
+        console.error('[KPIs] Revenue error — usando mock:', { sede, year, month, err: e.message });
+        return getMockRevenue(year, month);
+      }),
+      siigoService.getRevenueByMonth(prevYear, prevMonth, sede).catch((e: any) => {
+        console.error('[KPIs] RevenuePrev error — usando mock:', { sede, year: prevYear, month: prevMonth, err: e.message });
+        return getMockRevenue(prevYear, prevMonth);
+      }),
       sheetsService.getExpenses(year, month, sede, toDay),
       sheetsService.getExpenses(prevYear, prevMonth, sede),
     ]);
