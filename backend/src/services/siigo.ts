@@ -299,7 +299,7 @@ function normalizeReference(ref: string): string {
   if (r.includes('ecograf'))                                           return 'Ecografía';
   if (r.includes('radiograf'))                                         return 'Radiografía';
   if (r.includes('hospit') || r.includes('internac'))                  return 'Hospitalización';
-  if (r.includes('grooming') || r.includes('estétic') || r.includes('estetica') || r.includes('baño')) return 'Estética / Grooming';
+  if (r.includes('grooming') || r.includes('estétic') || r.includes('estetica') || r.includes('baño') || r.includes('peluquer')) return 'Estética / Grooming';
   if (r.includes('petshop') || r.includes('farmacia') || r.includes('medicament')) return 'Farmacia / Petshop';
   if (r.includes('control'))                                           return 'Controles';
   // Valor real de la referencia — convertir a Title Case
@@ -315,7 +315,7 @@ function normalizeServiceType(desc: string): string {
   if (desc.includes('URGENCIA') || desc.includes('EMERGENCIA')) return 'Urgencias';
   if (desc.includes('ECOGRAF')) return 'Ecografía';
   if (desc.includes('RADIOGRAF')) return 'Radiografía';
-  if (desc.includes('GROOMING') || desc.includes('BAÑO') || desc.includes('ESTETICA')) return 'Estética / Grooming';
+  if (desc.includes('GROOMING') || desc.includes('BAÑO') || desc.includes('ESTETICA') || desc.includes('PELUQUER')) return 'Estética / Grooming';
   if (desc.includes('MEDICAMENTO') || desc.includes('FARMACIA') || desc.includes('PETSHOP')) return 'Farmacia / Petshop';
   if (desc.includes('INTERNACION')) return 'Internación';
   if (desc.includes('CONTROL')) return 'Controles';
