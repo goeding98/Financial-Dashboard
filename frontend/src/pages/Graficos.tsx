@@ -105,7 +105,7 @@ export default function Graficos() {
   const showCOL = sede !== 'cj';
 
   // Y-axis: always based on VALUE when metric='both', otherwise the chosen metric
-  const yKey    = metric === 'qty' ? 'qty' : 'value';
+  const yKey    = metric === 'qty' ? 'qty' : 'val';
   const yFormat = (v: number) => metric === 'qty' ? String(Math.round(v)) : formatCOP(v);
   const yWidth  = metric === 'qty' ? 36 : 82;
 
