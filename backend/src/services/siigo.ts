@@ -277,6 +277,69 @@ export class SiigoService {
     }
   }
 
+  async getDailyByType(year: number, month: number, typeName: string): Promise<{
+    days: { day: number; cj: { qty: number; value: number }; col: { qty: number; value: number } }[];
+    totals: { cj: { qty: number; value: number }; col: { qty: number; value: number } };
+    lastDay: number;
+  }> {
+    const cacheKey = `daily_${year}_${month}_${typeName}`;
+    const cached = cache.get<any>(cacheKey);
+    if (cached) return cached;
+
+    const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay     = new Date(year, month, 0).getDate();
+    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const [allInvoices, refMap] = await Promise.all([
+      this.getInvoices(startDate, fullEndDate),
+      this.getProductReferenceMap(),
+    ]);
+
+    const byDay: Record<number, { cj: { qty: number; value: number }; col: { qty: number; value: number } }> = {};
+    for (let d = 1; d <= lastDay; d++) byDay[d] = { cj: { qty: 0, value: 0 }, col: { qty: 0, value: 0 } };
+
+    for (const inv of allInvoices as any[]) {
+      const day = inv.date ? new Date(inv.date).getDate() : null;
+      if (!day || day < 1 || day > lastDay) continue;
+      const sedeStr = inv.seller === PRORATE_SELLER_ID ? null : (SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin');
+
+      for (const item of inv.items || []) {
+        const ref = refMap[String(item.code)] || '';
+        const category = ref
+          ? normalizeReference(ref)
+          : normalizeServiceType((item.description || '').toUpperCase().trim());
+        if (category !== typeName) continue;
+
+        const qty = item.quantity || 1;
+        const val = item.total || 0;
+
+        if (sedeStr === null) {
+          byDay[day].col.qty   += qty * PRORATE_COLSEGUROS;
+          byDay[day].col.value += val * PRORATE_COLSEGUROS;
+          byDay[day].cj.qty    += qty * PRORATE_CIUDAD;
+          byDay[day].cj.value  += val * PRORATE_CIUDAD;
+        } else if (sedeStr === 'Colseguros') {
+          byDay[day].col.qty   += qty;
+          byDay[day].col.value += val;
+        } else {
+          byDay[day].cj.qty    += qty;
+          byDay[day].cj.value  += val;
+        }
+      }
+    }
+
+    const days = Object.entries(byDay).map(([d, v]) => ({ day: parseInt(d), ...v }));
+    const totals = { cj: { qty: 0, value: 0 }, col: { qty: 0, value: 0 } };
+    for (const d of days) {
+      totals.cj.qty   += d.cj.qty;   totals.cj.value  += d.cj.value;
+      totals.col.qty  += d.col.qty;  totals.col.value += d.col.value;
+    }
+
+    const result = { days, totals, lastDay };
+    cache.set(cacheKey, result, 3600);
+    return result;
+  }
+
   async testConnection(): Promise<{ ok: boolean; message: string }> {
     try {
       await this.authenticate();

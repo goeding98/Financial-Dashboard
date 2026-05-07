@@ -4,6 +4,7 @@ const nav = [
   { to: '/',          icon: '▦', label: 'Dashboard' },
   { to: '/pnl',       icon: '≡', label: 'P & G' },
   { to: '/cashflow',  icon: '◈', label: 'Flujo de Caja' },
+  { to: '/graficos',  icon: '▲', label: 'Gráficos' },
 ];
 
 export default function Sidebar() {

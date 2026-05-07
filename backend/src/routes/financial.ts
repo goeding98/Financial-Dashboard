@@ -285,6 +285,17 @@ router.get('/pnl/multi', async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
+// ── Diario por tipo de servicio ───────────────────────────────────────────────
+router.get('/daily', async (req: Request, res: Response) => {
+  try {
+    const year  = parseInt(req.query.year  as string) || new Date().getFullYear();
+    const month = parseInt(req.query.month as string) || new Date().getMonth() + 1;
+    const type  = (req.query.type as string) || 'Consultas';
+    const data  = await siigoService.getDailyByType(year, month, type);
+    res.json(data);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Cash Flow ─────────────────────────────────────────────────────────────────
 router.get('/cashflow', async (req: Request, res: Response) => {
   try {
