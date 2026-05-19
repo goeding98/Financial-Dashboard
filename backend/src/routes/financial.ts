@@ -266,15 +266,14 @@ router.get('/pnl/multi', async (req: Request, res: Response) => {
 
     if (!periods.length) { res.status(400).json({ error: 'Formato: months=2026-2,2026-3' }); return; }
 
-    const results = await Promise.all(
-      periods.map(async ({ year, month }) => {
-        const [revenue, expenses] = await Promise.all([
-          siigoService.getRevenueByMonth(year, month, sede),
-          sheetsService.getExpenses(year, month, sede),
-        ]);
-        return buildPnL(year, month, revenue, expenses);
-      })
-    );
+    const results = [];
+    for (const { year, month } of periods) {
+      const [revenue, expenses] = await Promise.all([
+        siigoService.getRevenueByMonth(year, month, sede),
+        sheetsService.getExpenses(year, month, sede),
+      ]);
+      results.push(buildPnL(year, month, revenue, expenses));
+    }
     res.json(results);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
@@ -382,12 +381,12 @@ router.get('/revenue-by-type/trend', async (req: Request, res: Response) => {
       }
     }
 
-    const results = await Promise.all(
-      periods.map(async ({ year, month }) => {
-        const types = await siigoService.getRevenueByType(year, month, sede, toDay).catch(() => []);
-        return { period: `${MONTHS_ES[month - 1]} ${String(year).slice(2)}`, year, month, types };
-      })
-    );
+    // Secuencial para no saturar Siigo con múltiples fetches simultáneos
+    const results = [];
+    for (const { year, month } of periods) {
+      const types = await siigoService.getRevenueByType(year, month, sede, toDay).catch(() => []);
+      results.push({ period: `${MONTHS_ES[month - 1]} ${String(year).slice(2)}`, year, month, types });
+    }
 
     res.json(results);
   } catch (err: any) { res.status(500).json({ error: err.message }); }
