@@ -64,5 +64,5 @@ app.listen(PORT, () => {
       }
     }
     console.log('[Prewarm] Cache precalentado ✓');
-  }, 0); // arrancar de inmediato
+  }, 2000); // 2s para que el server esté estable antes de golpear Siigo
 });

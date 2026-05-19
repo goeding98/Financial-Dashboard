@@ -42,7 +42,7 @@ export class SiigoService {
     this.client = axios.create({
       baseURL: process.env.SIIGO_BASE_URL || 'https://api.siigo.com',
       headers: { 'Content-Type': 'application/json', 'Partner-Id': SIIGO_PARTNER_ID },
-      timeout: 15000,
+      timeout: 45000,
     });
   }
 
@@ -69,11 +69,18 @@ export class SiigoService {
       });
       return res.data;
     } catch (err: any) {
-      if (err?.response?.status === 429 && retries > 0) {
-        const wait = (parseInt(err.response.headers['retry-after'] || '3') + 1) * 1000;
-        console.log(`[Siigo] Rate limit, esperando ${wait / 1000}s...`);
-        await sleep(wait);
-        return this.get<T>(path, params, retries - 1);
+      if (retries > 0) {
+        if (err?.response?.status === 429) {
+          const wait = (parseInt(err.response.headers['retry-after'] || '3') + 1) * 1000;
+          console.log(`[Siigo] Rate limit, esperando ${wait / 1000}s...`);
+          await sleep(wait);
+          return this.get<T>(path, params, retries - 1);
+        }
+        if (err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT') {
+          console.log(`[Siigo] Timeout, reintentando (${retries} restantes)...`);
+          await sleep(2000);
+          return this.get<T>(path, params, retries - 1);
+        }
       }
       throw err;
     }
