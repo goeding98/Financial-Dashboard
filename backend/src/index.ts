@@ -37,25 +37,32 @@ app.listen(PORT, () => {
   setTimeout(async () => {
     const now = new Date();
     console.log('[Prewarm] Iniciando precarga de cache...');
-    for (let i = 2; i >= 0; i--) {
+
+    // 1) Mapa de productos primero (lo usan todos los cálculos de tipo)
+    await siigoService.getProductReferenceMap().catch((e: any) =>
+      console.warn('[Prewarm] Products error:', e.message)
+    );
+
+    // 2) Dos meses: actual + anterior (secuencial para no saturar Siigo)
+    for (let i = 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const y = d.getFullYear();
       const m = d.getMonth() + 1;
       try {
-        // 1) Fetch facturas del mes (llama a Siigo, llena invoice cache)
-        await siigoService.getRevenueByMonth(y, m);
-        // 2) Calcular sedes usando invoice cache ya lleno — sin llamadas extra a Siigo
-        await siigoService.getRevenueByMonth(y, m, 'Colseguros');
-        await siigoService.getRevenueByMonth(y, m, 'Ciudad Jardin');
-        // 3) Revenue por tipo (también usa invoice cache)
-        await siigoService.getRevenueByType(y, m);
-        await siigoService.getRevenueByType(y, m, 'Colseguros');
-        await siigoService.getRevenueByType(y, m, 'Ciudad Jardin');
-        console.log(`[Prewarm] ${m}/${y} listo (all + 2 sedes)`);
+        await siigoService.getRevenueByMonth(y, m); // trae facturas → cache
+        // Con facturas en cache, el resto es cálculo local — corre en paralelo
+        await Promise.all([
+          siigoService.getRevenueByMonth(y, m, 'Colseguros'),
+          siigoService.getRevenueByMonth(y, m, 'Ciudad Jardin'),
+          siigoService.getRevenueByType(y, m),
+          siigoService.getRevenueByType(y, m, 'Colseguros'),
+          siigoService.getRevenueByType(y, m, 'Ciudad Jardin'),
+        ]);
+        console.log(`[Prewarm] ${m}/${y} listo`);
       } catch (e: any) {
         console.warn(`[Prewarm] ${m}/${y} error:`, e.message);
       }
     }
     console.log('[Prewarm] Cache precalentado ✓');
-  }, 8000); // esperar 8s a que el server esté estable
+  }, 0); // arrancar de inmediato
 });

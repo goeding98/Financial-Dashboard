@@ -213,14 +213,8 @@ router.get('/kpis', async (req: Request, res: Response) => {
     const prevYear  = month === 1 ? year - 1 : year;
 
     const [revenue, revenuePrev, expenses, expensesPrev] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede, toDay).catch((e: any) => {
-        console.error('[KPIs] Revenue error — usando mock:', { sede, year, month, err: e.message });
-        return getMockRevenue(year, month);
-      }),
-      siigoService.getRevenueByMonth(prevYear, prevMonth, sede).catch((e: any) => {
-        console.error('[KPIs] RevenuePrev error — usando mock:', { sede, year: prevYear, month: prevMonth, err: e.message });
-        return getMockRevenue(prevYear, prevMonth);
-      }),
+      siigoService.getRevenueByMonth(year, month, sede, toDay),
+      siigoService.getRevenueByMonth(prevYear, prevMonth, sede),
       sheetsService.getExpenses(year, month, sede, toDay),
       sheetsService.getExpenses(prevYear, prevMonth, sede),
     ]);
@@ -253,7 +247,7 @@ router.get('/pnl', async (req: Request, res: Response) => {
     const toDay = req.query.toDay ? parseInt(req.query.toDay as string) : undefined;
 
     const [revenue, expenses] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede, toDay).catch(() => getMockRevenue(year, month)),
+      siigoService.getRevenueByMonth(year, month, sede, toDay),
       sheetsService.getExpenses(year, month, sede, toDay),
     ]);
 
@@ -275,7 +269,7 @@ router.get('/pnl/multi', async (req: Request, res: Response) => {
     const results = await Promise.all(
       periods.map(async ({ year, month }) => {
         const [revenue, expenses] = await Promise.all([
-          siigoService.getRevenueByMonth(year, month, sede).catch(() => getMockRevenue(year, month)),
+          siigoService.getRevenueByMonth(year, month, sede),
           sheetsService.getExpenses(year, month, sede),
         ]);
         return buildPnL(year, month, revenue, expenses);
@@ -304,7 +298,7 @@ router.get('/cashflow', async (req: Request, res: Response) => {
     const sede  = req.query.sede as string | undefined;
 
     const [revenue, expenses, cfItems] = await Promise.all([
-      siigoService.getRevenueByMonth(year, month, sede).catch(() => getMockRevenue(year, month)),
+      siigoService.getRevenueByMonth(year, month, sede),
       sheetsService.getExpenses(year, month, sede),
       sheetsService.getCashFlowItems(year, month, sede),
     ]);
