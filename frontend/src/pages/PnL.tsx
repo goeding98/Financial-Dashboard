@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as XLSX from 'xlsx';
 import { useApi, api } from '../hooks/useApi';
 import { PnL as PnLType, PnLItem } from '../types/financial';
 import TopBar from '../components/layout/TopBar';
@@ -230,6 +231,81 @@ function SubtotalRow({ label, values, margins, highlight, primaryIdx }: {
   );
 }
 
+// ── Excel Export ─────────────────────────────────────────────────────────────
+function exportPnLToExcel(allPnls: PnLType[], sede: string, primaryIdx: number) {
+  const nMonths = allPnls.length;
+
+  const getCatTotal = (catKey: string, mi: number) =>
+    allPnls[mi]?.items.filter(i => i.category === catKey).reduce((s, i) => s + i.amount, 0) ?? 0;
+  const getLabelTotal = (catKey: string, lbl: string, mi: number) =>
+    allPnls[mi]?.items.filter(i => i.category === catKey && i.label === lbl).reduce((s, i) => s + i.amount, 0) ?? 0;
+  const getSubTotal = (catKey: string, lbl: string, sub: string, mi: number) =>
+    allPnls[mi]?.items.filter(i => i.category === catKey && i.label === lbl && i.sublabel === sub).reduce((s, i) => s + i.amount, 0) ?? 0;
+
+  type Row = (string | number)[];
+  const rows: Row[] = [];
+
+  // Header
+  rows.push(['Concepto', ...allPnls.map(p => p.period.label), '% Ing.', 'EBITDA?']);
+
+  const addSubtotalRow = (concept: string, values: number[], pct?: number) => {
+    rows.push([concept, ...values, pct ?? '', '']);
+  };
+
+  const addCategoryBlock = (concept: string, catKey: string, isEBITDA: boolean) => {
+    const catTotals = allPnls.map((_, mi) => getCatTotal(catKey, mi));
+    const primaryRev = allPnls[primaryIdx]?.revenue ?? 1;
+    const primaryCat = catTotals[primaryIdx] ?? 0;
+    const pctIng = primaryRev > 0 && primaryCat > 0 ? (primaryCat / primaryRev) * 100 : '';
+    rows.push([concept, ...catTotals.map(v => -v), pctIng, isEBITDA ? 'SI' : 'NO']);
+
+    const allLabels = new Set<string>();
+    allPnls.forEach(m => m.items.filter(i => i.category === catKey).forEach(i => allLabels.add(i.label)));
+    const orderedLabels = orderedKeys([...allLabels], (lbl, mi) => getLabelTotal(catKey, lbl, mi), primaryIdx, nMonths);
+
+    for (const lbl of orderedLabels) {
+      const lblTotals = allPnls.map((_, mi) => getLabelTotal(catKey, lbl, mi));
+      rows.push(['  ' + lbl, ...lblTotals.map(v => -v), '', '']);
+
+      const allSubs = new Set<string>();
+      allPnls.forEach(m => m.items.filter(i => i.category === catKey && i.label === lbl && i.sublabel).forEach(i => allSubs.add(i.sublabel)));
+      const orderedSubs = orderedKeys([...allSubs], (sub, mi) => getSubTotal(catKey, lbl, sub, mi), primaryIdx, nMonths);
+
+      for (const sub of orderedSubs) {
+        const subTotals = allPnls.map((_, mi) => getSubTotal(catKey, lbl, sub, mi));
+        rows.push(['    ' + sub, ...subTotals.map(v => -v), '', '']);
+      }
+    }
+  };
+
+  addSubtotalRow('Ingresos Netos', allPnls.map(p => p.revenue), 100);
+  addCategoryBlock('(-) Costo de Ventas', 'cogs', true);
+  addSubtotalRow('= Utilidad Bruta', allPnls.map(p => p.grossProfit), allPnls[primaryIdx]?.grossMargin);
+  addCategoryBlock('(-) Gastos Operativos', 'opex', true);
+  addSubtotalRow('= EBITDA', allPnls.map(p => p.ebitda), allPnls[primaryIdx]?.ebitdaMargin);
+  addCategoryBlock('(-) Depreciacion & Amortizacion', 'da', false);
+  addSubtotalRow('= EBIT', allPnls.map(p => p.ebit), allPnls[primaryIdx]?.ebitMargin);
+  addCategoryBlock('(-) Intereses / No EBITDA', 'interest', false);
+  addCategoryBlock('(-) Impuestos', 'tax', false);
+  addSubtotalRow('= Utilidad Neta', allPnls.map(p => p.netIncome), allPnls[primaryIdx]?.netMargin);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 42 },
+    ...allPnls.map(() => ({ wch: 18 })),
+    { wch: 10 },
+    { wch: 9 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  const tabName = sede ? sede.replace(/[^a-zA-Z0-9 ]/g, '').slice(0, 31) : 'Todas las Sedes';
+  XLSX.utils.book_append_sheet(wb, ws, tabName);
+
+  const primary = allPnls[primaryIdx] ?? allPnls[allPnls.length - 1];
+  const fileName = `PnG_${(sede || 'TodasSedes').replace(/ /g, '_')}_${primary?.period.label ?? ''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function PnL() {
   const now = new Date();
@@ -325,8 +401,9 @@ export default function PnL() {
           ) : (
             <div className="gs-card overflow-hidden">
               {/* Multi-month controls */}
-              <div className="px-6 py-3 border-b border-gs-border bg-gs-bg flex items-center gap-3 flex-wrap">
-                <p className="section-title text-xs">Comparar periodos:</p>
+              <div className="px-6 py-3 border-b border-gs-border bg-gs-bg flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 flex-wrap flex-1">
+                  <p className="section-title text-xs">Comparar periodos:</p>
                 {allPnls.map((p, i) => {
                   const isPrimary = p.period.year === year && p.period.month === month;
                   return (
@@ -357,6 +434,13 @@ export default function PnL() {
                     + Agregar mes
                   </button>
                 )}
+                </div>
+                <button
+                  onClick={() => exportPnLToExcel(allPnls, sede, primaryIdx)}
+                  className="shrink-0 text-xs bg-gs-green text-white px-3 py-1.5 rounded hover:bg-green-700 font-medium"
+                >
+                  ↓ Exportar Excel
+                </button>
               </div>
 
               <div className="overflow-x-auto">
