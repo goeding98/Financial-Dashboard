@@ -96,8 +96,8 @@ export class SiigoService {
 
     while (true) {
       const data: any = await this.get('/v1/invoices', {
-        created_start: startDate,
-        created_end: endDate,
+        date_start: startDate,
+        date_end:   endDate,
         page,
         page_size: 100,
       });
