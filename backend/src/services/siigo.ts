@@ -39,6 +39,19 @@ const PRORATE_SELLER_ID = 437;
 const PRORATE_COLSEGUROS = 0.70;
 const PRORATE_CIUDAD     = 0.30;
 
+// Cambios de sede con fecha efectiva: { from: 'YYYY-MM-DD', prevSede }
+// prevSede = sede ANTES de la fecha; SELLER_SEDE_MAP tiene la sede ACTUAL
+const SELLER_SEDE_CHANGES: Record<number, { from: string; prevSede: string }> = {
+  949: { from: '2026-06-15', prevSede: 'Colseguros' }, // Johan Duque: Colseguros → Santa Monica
+  971: { from: '2026-06-15', prevSede: 'Colseguros' }, // Edwin Martinez: Colseguros → Santa Monica
+};
+
+function getSellerSede(sellerId: number, invoiceDate: string): string | null {
+  const change = SELLER_SEDE_CHANGES[sellerId];
+  if (change && invoiceDate < change.from) return change.prevSede;
+  return SELLER_SEDE_MAP[sellerId] ?? null;
+}
+
 
 async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -162,8 +175,7 @@ export class SiigoService {
         if (sede === 'Colseguros') revenue += amount * PRORATE_COLSEGUROS;
         else if (sede === 'Ciudad Jardin') revenue += amount * PRORATE_CIUDAD;
       } else {
-        const sellerSede = SELLER_SEDE_MAP[inv.seller];
-        if (sellerSede === sede) revenue += amount;
+        if (getSellerSede(inv.seller, inv.date ?? '') === sede) revenue += amount;
       }
     }
 
@@ -234,8 +246,7 @@ export class SiigoService {
           else if (sede === 'Ciudad Jardin') factor = PRORATE_CIUDAD;
           else continue;
         } else {
-          const sellerSede = SELLER_SEDE_MAP[inv.seller];
-          if (sellerSede !== sede) continue;
+          if (getSellerSede(inv.seller, inv.date ?? '') !== sede) continue;
         }
       }
 
@@ -325,7 +336,7 @@ export class SiigoService {
       if (EXCLUDED_SELLER_IDS.has(inv.seller)) continue;
       const day = inv.date ? new Date(inv.date).getDate() : null;
       if (!day || day < 1 || day > lastDay) continue;
-      const sedeStr = inv.seller === PRORATE_SELLER_ID ? null : (SELLER_SEDE_MAP[inv.seller] ?? null);
+      const sedeStr = inv.seller === PRORATE_SELLER_ID ? null : getSellerSede(inv.seller, inv.date ?? '');
 
       for (const item of inv.items || []) {
         const ref = refMap[String(item.code)] || '';
