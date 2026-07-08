@@ -16,12 +16,23 @@ const DATA_START       = new Date(2025, 4, 1); // Mayo 2025 — inicio de datos 
 export const SELLER_SEDE_MAP: Record<number, string> = {
   948: 'Colseguros',    // Marilu Salazar
   969: 'Colseguros',    // Edna Labrada
-  949: 'Colseguros',    // Johan Duque (en Siigo: TURNO NOCTURNOFESTIVO)
+  949: 'Santa Monica',  // Johan Duque
   972: 'Colseguros',    // Johan Ospina
   970: 'Colseguros',    // Fernanda Pabon
-  971: 'Colseguros',    // Edwin Martinez
+  971: 'Santa Monica',  // Edwin Martinez
   956: 'Ciudad Jardin', // Marcela Moreno
+  966: 'Ciudad Jardin', // Ana Maria Torres
+  965: 'Ciudad Jardin', // Vanessa Gomez
+  964: 'Ciudad Jardin', // Sergio Ruiz
+  968: 'Ciudad Jardin', // Mariana Gaviria
+  976: 'Colseguros',    // Jhonatan Leyton
+  977: 'Santa Monica',  // Marcela AMSC
+  978: 'Santa Monica',  // Edisson Agudelo
+  979: 'Colseguros',    // Valentina Tobar
 };
+
+// Vendedores que NO deben contar en ingresos (no deberían facturar / contadora)
+const EXCLUDED_SELLER_IDS = new Set([961, 952, 953]);
 
 // Vendedor 437 (empresa/contadora): se prorratean sus facturas 70/30
 const PRORATE_SELLER_ID = 437;
@@ -143,13 +154,15 @@ export class SiigoService {
 
     let revenue = 0;
     for (const inv of invoices as any[]) {
+      if (EXCLUDED_SELLER_IDS.has(inv.seller)) continue;
       const amount = inv.subtotal ?? inv.total ?? 0;
       if (!sede) {
         revenue += amount;
       } else if (inv.seller === PRORATE_SELLER_ID) {
-        revenue += amount * (sede === 'Colseguros' ? PRORATE_COLSEGUROS : PRORATE_CIUDAD);
+        if (sede === 'Colseguros') revenue += amount * PRORATE_COLSEGUROS;
+        else if (sede === 'Ciudad Jardin') revenue += amount * PRORATE_CIUDAD;
       } else {
-        const sellerSede = SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin';
+        const sellerSede = SELLER_SEDE_MAP[inv.seller];
         if (sellerSede === sede) revenue += amount;
       }
     }
@@ -213,12 +226,15 @@ export class SiigoService {
     const byType: Record<string, { revenue: number; count: number }> = {};
 
     for (const inv of invoices as any[]) {
+      if (EXCLUDED_SELLER_IDS.has(inv.seller)) continue;
       let factor = 1;
       if (sede) {
         if (inv.seller === PRORATE_SELLER_ID) {
-          factor = sede === 'Colseguros' ? PRORATE_COLSEGUROS : PRORATE_CIUDAD;
+          if (sede === 'Colseguros') factor = PRORATE_COLSEGUROS;
+          else if (sede === 'Ciudad Jardin') factor = PRORATE_CIUDAD;
+          else continue;
         } else {
-          const sellerSede = SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin';
+          const sellerSede = SELLER_SEDE_MAP[inv.seller];
           if (sellerSede !== sede) continue;
         }
       }
@@ -306,9 +322,10 @@ export class SiigoService {
     for (let d = 1; d <= lastDay; d++) byDay[d] = { cj: { qty: 0, value: 0 }, col: { qty: 0, value: 0 } };
 
     for (const inv of allInvoices as any[]) {
+      if (EXCLUDED_SELLER_IDS.has(inv.seller)) continue;
       const day = inv.date ? new Date(inv.date).getDate() : null;
       if (!day || day < 1 || day > lastDay) continue;
-      const sedeStr = inv.seller === PRORATE_SELLER_ID ? null : (SELLER_SEDE_MAP[inv.seller] ?? 'Ciudad Jardin');
+      const sedeStr = inv.seller === PRORATE_SELLER_ID ? null : (SELLER_SEDE_MAP[inv.seller] ?? null);
 
       for (const item of inv.items || []) {
         const ref = refMap[String(item.code)] || '';

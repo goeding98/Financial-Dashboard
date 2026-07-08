@@ -7,6 +7,7 @@ const SEDES = [
   { value: '',               label: 'Todas las Sedes' },
   { value: 'Colseguros',    label: 'Colseguros' },
   { value: 'Ciudad Jardin', label: 'Ciudad Jardín' },
+  { value: 'Santa Monica',  label: 'Santa Mónica' },
 ];
 
 export default function SedeFilter({ value, onChange }: Props) {
