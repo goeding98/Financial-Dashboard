@@ -57,6 +57,15 @@ async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Siigo trata `date_end` como excluyente (descarta las facturas de ese día),
+// así que para traer el mes completo hay que pedir hasta el día 1 del mes
+// siguiente y filtrar en memoria por mes real — de lo contrario se pierde
+// sistemáticamente el último día de cada mes.
+function monthApiEndDate(year: number, month: number): string {
+  const d = new Date(year, month, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export class SiigoService {
   private client: AxiosInstance;
   private accessToken: string | null = null;
@@ -152,10 +161,11 @@ export class SiigoService {
     if (cached !== undefined) return cached;
 
     const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
-    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+    const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
 
     // Siempre traer el mes completo (Siigo no filtra confiablemente por día con created_end)
-    const allInvoices = await this.getInvoices(startDate, fullEndDate);
+    const allInvoices = (await this.getInvoices(startDate, monthApiEndDate(year, month)))
+      .filter((inv: any) => typeof inv.date === 'string' && inv.date.startsWith(monthPrefix));
 
     // Filtrar por día en memoria usando el campo date de la factura
     const invoices = toDay
@@ -220,12 +230,13 @@ export class SiigoService {
     if (cached) return cached;
 
     const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
-    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+    const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
 
-    const [allInvoices, refMap] = await Promise.all([
-      this.getInvoices(startDate, fullEndDate),
+    const [allInvoicesRaw, refMap] = await Promise.all([
+      this.getInvoices(startDate, monthApiEndDate(year, month)),
       this.getProductReferenceMap(),
     ]);
+    const allInvoices = allInvoicesRaw.filter((inv: any) => typeof inv.date === 'string' && inv.date.startsWith(monthPrefix));
 
     // Filtrar por día en memoria
     const invoices = toDay
@@ -322,12 +333,13 @@ export class SiigoService {
 
     const startDate   = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay     = new Date(year, month, 0).getDate();
-    const fullEndDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
 
-    const [allInvoices, refMap] = await Promise.all([
-      this.getInvoices(startDate, fullEndDate),
+    const [allInvoicesRaw, refMap] = await Promise.all([
+      this.getInvoices(startDate, monthApiEndDate(year, month)),
       this.getProductReferenceMap(),
     ]);
+    const allInvoices = allInvoicesRaw.filter((inv: any) => typeof inv.date === 'string' && inv.date.startsWith(monthPrefix));
 
     const byDay: Record<number, { cj: { qty: number; value: number }; col: { qty: number; value: number } }> = {};
     for (let d = 1; d <= lastDay; d++) byDay[d] = { cj: { qty: 0, value: 0 }, col: { qty: 0, value: 0 } };
