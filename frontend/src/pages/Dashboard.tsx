@@ -42,7 +42,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gs-bg">
       <TopBar
-        title="Dashboard Financiero"
+        title="Financial Dashboard"
         subtitle={kpis ? `Periodo: ${kpis.period.label}${sede ? ` · ${sede}` : ' · Todas las Sedes'}` : 'Cargando...'}
         year={year}
         month={month}
